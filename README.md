@@ -25,12 +25,19 @@
 "[艺术家名] 标题名.ext"，如果没有艺术家则只会有标题。它们会被存放到漫画库文件夹下与它们名字相同的子文件夹中，如下所示：
 
 Manga
+
 ├──[artist1] title1
+
 │&ensp;&ensp;&ensp;&ensp;&ensp;└── [artist1] title1.zip
+
 ├──[artist2] title2
+
 │&ensp;&ensp;&ensp;&ensp;&ensp;└── [artist2] title2.rar
+
 ├──title3
+
 │&ensp;&ensp;&ensp;&ensp;&ensp;└── title3.7z
+
 
 请注意，"[艺术家名]"与"标题名"之间含有空格，这些名字以数据库中的表项为准，建议先建立数据库表，根据表项修改名称后再导入。
 另外，画廊标题中诸如"?"、"\\"的非法路径字符会在文件名中被删去，在数据库中则仍会保留
