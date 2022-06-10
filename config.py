@@ -15,8 +15,8 @@ remote_mangaPath = r"/Book/Doujinshi"
 remote_downloadPath = r"/Book/Torrents"
 
 
-favoritesDB = r"C:\Code\Ehentai_Favorites_Graber\db\Eh.db"
-translationDB = r"C:\Code\Ehentai_Favorites_Graber\db\EhTagTranslation.db"
+favoritesDB = r"C:\Code\Ehentai_Favorites_Spider\db\Eh.db"
+translationDB = r"C:\Code\Ehentai_Favorites_Spider\db\EhTagTranslation.db"
 
 
 qbt_host = "xx.xx"
