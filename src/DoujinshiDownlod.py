@@ -128,5 +128,7 @@ def start():
         name = "[" + row[3] + "] " + row[4]
         if torrentCount > 0:
             downloadByTorrent(torrents[0], name)
+            updateDownload(gid, "downloading:0")
         else:
             downloadByDirect(gid, name)
+            updateDownload(gid, "exist")
