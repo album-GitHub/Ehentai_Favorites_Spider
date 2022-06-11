@@ -2,6 +2,9 @@
 
 抓取用户Ehentai收藏的画廊及其元数据，并通过qbittorrent下载这些画廊。
 
+更新时，请先保存```config.py```与数据库文件，clone仓库后再进行替换
+
+
 ##### 来源
 
 抓取元数据以及翻译标签的功能改写自 [nonpricklycactus/Ehentai_metadata](https://github.com/nonpricklycactus/Ehentai_metadata)
@@ -70,9 +73,9 @@ Manga
 ##### 使用
 
 在脚本文件夹下使用命令行键入
-```> python _init_.py```
+```> python __init__.py```
 脚本运行会出现输入提示，第一次使用，要键入```0```，脚本会在数据库中建表并爬取所有的收藏画廊元数据，之后进行下载流程。脚本录入数据库时会逐一检测是否已录入，当收藏画廊数过多时可能会耗费一定时间。如果只是将本地文件导入以及进行下载，则可以键入```1```，或是使用命令行参数
-```> python _init_.py -i```
+```> python __init__.py -i```
 可以使用计划任务来使脚本周期性运行
 如果没有安装```sqlite```，可以使用[这个](https://inloop.github.io/sqlite-viewer/)来查看数据库
 

@@ -66,6 +66,7 @@ def refreshDownloading() -> int:
 
 
 def loadManga(torrent_hash):
+    slash = "\\" if "\\" in remote_mangaPath else "/"
     info = qbt.torrents_info(torrent_hashes=torrent_hash)[0]
     name = validateTitle(info["name"])
     ext = os.path.splitext(
@@ -75,7 +76,7 @@ def loadManga(torrent_hash):
         torrent_hash=torrent_hash, file_id=0, new_file_name=name + ext
     )
     qbt.torrents_set_location(
-        location=os.path.join(remote_mangaPath, name), torrent_hashes=torrent_hash
+        location=remote_mangaPath + slash + name, torrent_hashes=torrent_hash
     )
     return True
 
@@ -85,6 +86,7 @@ def downloadByTorrent(torrentHash, name):
     try:
         qbt.torrents_add(
             urls=url,
+            save_path=remote_downloadPath,
             download_path=remote_downloadPath,
             category="本子",
             rename=name,

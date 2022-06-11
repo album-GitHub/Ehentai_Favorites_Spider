@@ -1,5 +1,6 @@
 import os, re, sqlite3, json, html
 from datetime import datetime
+from urllib.error import URLError
 from src.Browser import Browser
 from config import (
     ExHentai_Cookies,
