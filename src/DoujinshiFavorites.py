@@ -21,7 +21,7 @@ class md:
         pass
 
 
-def get_favorites():
+def get_favorites(isTotal):
     br = Browser()
     br.set_proxies(proxies=Proxy, proxy_bypass=lambda hostname: False)
     br.addheaders = [
@@ -40,7 +40,8 @@ def get_favorites():
         )
     gidList = []
     a = 0
-    while True:
+    flag=True
+    while flag:
         url = query + "?page=" + str(a)
         try:
             _raw = br.open_novisit(url)
@@ -53,7 +54,9 @@ def get_favorites():
         if gidList == None:
             break
         for s in range(int(len(gidList) / 10) + 1):
-            get_all_details(gidlist=gidList[s * 10 : (s + 1) * 10], timeout=1000)
+            if not get_all_details(gidlist=gidList[s * 10 : (s + 1) * 10], timeout=1000,isTotal=isTotal):
+                flag =False
+                break
         a = a + 1
 
 
@@ -84,7 +87,7 @@ def isInserted(gmetadata):
     return False
 
 
-def get_all_details(gidlist, timeout):
+def get_all_details(gidlist, timeout,isTotal):
 
     if len(gidlist) == 0:
         return
@@ -101,7 +104,6 @@ def get_all_details(gidlist, timeout):
     except:
         print("网络错误")
         return
-
     gmetadatas = json.loads(raw)["gmetadata"]
     Newgmetadatas = []
     for gmetadata in gmetadatas:
@@ -112,6 +114,9 @@ def get_all_details(gidlist, timeout):
         if not isInserted(gmetadata):
             m = toMetadata(gmetadata)
             insert(m)
+        elif not isTotal:
+            return False
+    return True
 
 
 def optional(pattern: str):
@@ -311,7 +316,7 @@ def upgradaExist():
             print("[" + row[1] + "] " + row[2] + "记入")
 
 
-def start():
+def start(isTotal):
     con = sqlite3.connect(favoritesDB)
     con.execute(
         """create table if not exists favorites(
@@ -330,5 +335,5 @@ def start():
             addDate DATE NOT NULL)"""
     )
     con.close()
-    get_favorites()
+    get_favorites(isTotal)
     upgradaExist()
