@@ -56,7 +56,7 @@ def refreshDownloading() -> int:
                     updateDownload(gid, "torrentFailed")
                 else:
                     qbt.torrents_add(
-                        urls=mangetHead + torrents.split(",")[n],
+                        urls=mangetHead + torrents[n],
                         download_path=remote_downloadPath,
                         category="本子",
                         rename=info["name"],
