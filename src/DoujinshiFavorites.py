@@ -1,6 +1,5 @@
 import os, re, sqlite3, json, html
 from datetime import datetime
-from urllib.error import URLError
 from src.Browser import Browser
 from config import (
     ExHentai_Cookies,
@@ -10,7 +9,8 @@ from config import (
     local_mangaPath,
     validateTitle,
 )
-import src.DoujinshiDownlod as DoujinshiDownlod
+
+from src.DoujinshiDownlod import updateDownload
 
 query = "https://exhentai.org/favorites.php"
 EHentai_API_url = "https://api.e-hentai.org/api.php"
@@ -40,7 +40,7 @@ def get_favorites(isTotal):
         )
     gidList = []
     a = 0
-    flag=True
+    flag = True
     while flag:
         url = query + "?page=" + str(a)
         try:
@@ -54,8 +54,10 @@ def get_favorites(isTotal):
         if gidList == None:
             break
         for s in range(int(len(gidList) / 10) + 1):
-            if not get_all_details(gidlist=gidList[s * 10 : (s + 1) * 10], timeout=1000,isTotal=isTotal):
-                flag =False
+            if not get_all_details(
+                gidlist=gidList[s * 10 : (s + 1) * 10], timeout=1000, isTotal=isTotal
+            ):
+                flag = False
                 break
         a = a + 1
 
@@ -87,7 +89,7 @@ def isInserted(gmetadata):
     return False
 
 
-def get_all_details(gidlist, timeout,isTotal):
+def get_all_details(gidlist, timeout, isTotal):
 
     if len(gidlist) == 0:
         return
@@ -121,6 +123,12 @@ def get_all_details(gidlist, timeout,isTotal):
 
 def optional(pattern: str):
     return "(?:" + pattern + ")?"
+
+
+def getFileName(title: str, authors: str):
+    if authors == "":
+        return title
+    return validateTitle("[" + authors + "] " + title)
 
 
 def extractFieldFromTitle(title: str):
@@ -244,6 +252,9 @@ def toMetadata(gmetadata):
     conn.close()
 
     m.authors = ",".join(m.authors)
+    m.authors = (
+        m.groups if m.authors == "" and m.groups != "" else ""
+    )  # 如果作者名为空而社团名不为空，作者名使用社团名
     if isExist(m.authors, m.title):
         m.isExisting = "exist"
     else:
@@ -252,7 +263,7 @@ def toMetadata(gmetadata):
 
 
 def isExist(authors, title):
-    mangaName = "[" + authors + "] " + title
+    mangaName = getFileName(authors=authors, title=title)
     mangaFile = os.path.join(local_mangaPath, validateTitle(mangaName))
     if os.path.isdir(mangaFile):
         return True
@@ -300,7 +311,7 @@ def insert(m):
         print(e)
     cur.close()
     con.close()
-    print("[" + m.authors + "] " + m.title, "：录入")
+    print(getFileName(authors=m.authors, title=m.title), "：录入")
 
 
 def upgradaExist():
@@ -312,8 +323,8 @@ def upgradaExist():
     con.close()
     for row in rows:
         if isExist(row[1], row[2]):
-            DoujinshiDownlod.updateDownload(row[0], "exist")
-            print("[" + row[1] + "] " + row[2] + "记入")
+            updateDownload(row[0], "exist")
+            print(getFileName(authors=row[1], title=row[2]) + "记入")
 
 
 def start(isTotal):

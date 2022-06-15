@@ -16,6 +16,12 @@ from config import (
 mangetHead = "magnet:?xt=urn:btih:"
 
 
+def getFileName(title: str, authors: str):
+    if authors == "":
+        return title
+    return validateTitle("[" + authors + "] " + title)
+
+
 def updateDownload(gid, state):
     con = sqlite3.connect(favoritesDB)
     cur = con.cursor()
@@ -56,7 +62,7 @@ def refreshDownloading() -> int:
                     updateDownload(gid, "torrentFailed")
                 else:
                     qbt.torrents_add(
-                        urls=mangetHead + torrents[n],
+                        urls=mangetHead + torrents.split(",")[n],
                         download_path=remote_downloadPath,
                         category="本子",
                         rename=info["name"],
@@ -112,12 +118,12 @@ def start():
     cur = con.cursor()
     count = refreshDownloading()
     cur.execute(
-        "select gid,torrents,torrentCount,authors,title from favorites where isExisting = 'undownloaded' and torrentCount>0 limit ?",
+        "select gid,torrents,torrentCount,authors,title,isExisting from favorites where isExisting = 'undownloaded' and torrentCount>0 limit ?",
         [str(count)],
     )
     rows = cur.fetchall()
     cur.execute(
-        "select gid,torrents,torrentCount,authors,title from favorites where (isExpunged==0 and isExisting!='exist' ) and (torrentCount<=0 or isExisting =='torrentFailed') limit ?",
+        "select gid,torrents,torrentCount,authors,title,isExisting from favorites where ( isExisting!='exist' ) and (torrentCount<=0 or isExisting =='torrentFailed') limit ?",
         [str(directDownloadLimit)],
     )
     rows.extend(cur.fetchall())
@@ -127,8 +133,9 @@ def start():
         gid = row[0]
         torrents = row[1].split(",")
         torrentCount = row[2]
-        name = "[" + row[3] + "] " + row[4]
-        if torrentCount > 0:
+        name = getFileName(authors=row[3], title=row[4])
+        state = row[5]
+        if torrentCount > 0 and state == "undownloaded":
             downloadByTorrent(torrents[0], name)
             updateDownload(gid, "downloading:0")
         else:

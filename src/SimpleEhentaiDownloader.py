@@ -124,7 +124,7 @@ def imgUrlGraberAndDownload(page_url_list, title, path):
                     cookies=Eh_Cookie,
                 )
                 img_name = _img_url.split("/")[-1]
-                with open(os.path.join(_img_dir,img_name), "wb+") as f:
+                with open(os.path.join(_img_dir, img_name), "wb+") as f:
                     f.write(resp.content)
                 break
             except:
