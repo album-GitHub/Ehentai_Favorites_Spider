@@ -192,7 +192,7 @@ def toMetadata(gmetadata):
     m.gid = str(gmetadata["gid"]) + "/" + str(gmetadata["token"])
     m.title = extractFieldFromTitle(gmetadata["title_jpn"])
     m.category = gmetadata["category"]
-    m.isExpunged = gmetadata["expunged"]
+    m.isExpunged = False
     m.authors = []
     m.characters = []
     m.parody = []

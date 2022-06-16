@@ -31,6 +31,15 @@ def updateDownload(gid, state):
     con.close()
 
 
+def updateExpunged(gid, state):
+    con = sqlite3.connect(favoritesDB)
+    cur = con.cursor()
+    cur.execute("update favorites set isExpunged = ? where gid = ?", (state, gid))
+    con.commit()
+    cur.close()
+    con.close()
+
+
 def refreshDownloading() -> int:
     con = sqlite3.connect(favoritesDB)
     cur = con.cursor()
@@ -62,13 +71,13 @@ def refreshDownloading() -> int:
                     updateDownload(gid, "torrentFailed")
                 else:
                     qbt.torrents_add(
-                        urls=mangetHead + torrents.split(",")[n],
+                        urls=mangetHead + torrents[n + 1],
                         download_path=remote_downloadPath,
                         category="本子",
                         rename=info["name"],
                     )
-                    updateDownload(gid, "downloaded:" + str(n + 1))
-    return maxDownloadCount - count
+                    updateDownload(gid, "downloading:" + str(n + 1))
+    return maxDownloadCount - count if maxDownloadCount - count > 0 else 0
 
 
 def loadManga(torrent_hash):
@@ -107,8 +116,8 @@ def downloadByDirect(gid, downloadName):
     try:
         zipPath = SimpleEhentaiDownloader.downloadByPage(gid, downloadName)
         SimpleEhentaiDownloader.loadManga(zipPath)
-    except Exception as e:
-        print(e)
+    except IndexError:
+        print(downloadName + "已被Exhentai删除")
         return False
     return True
 
@@ -123,7 +132,7 @@ def start():
     )
     rows = cur.fetchall()
     cur.execute(
-        "select gid,torrents,torrentCount,authors,title,isExisting from favorites where ( isExisting!='exist' ) and (torrentCount<=0 or isExisting =='torrentFailed') limit ?",
+        "select gid,torrents,torrentCount,authors,title,isExisting from favorites where ( isExisting!='exist' and isExpunged==0) and (torrentCount<=0 or isExisting =='torrentFailed') limit ?",
         [str(directDownloadLimit)],
     )
     rows.extend(cur.fetchall())
@@ -136,8 +145,11 @@ def start():
         name = getFileName(authors=row[3], title=row[4])
         state = row[5]
         if torrentCount > 0 and state == "undownloaded":
-            downloadByTorrent(torrents[0], name)
-            updateDownload(gid, "downloading:0")
+            if downloadByTorrent(torrents[0], name):
+                updateDownload(gid, "downloading:0")
         else:
-            downloadByDirect(gid, name)
-            updateDownload(gid, "exist")
+            if downloadByDirect(gid, name):
+                updateDownload(gid, "exist")
+            else:
+                updateDownload(gid, "failed")
+                updateExpunged(gid, True)

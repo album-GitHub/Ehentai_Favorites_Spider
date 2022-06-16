@@ -86,7 +86,7 @@ Manga
 | gid |主键，由画廊id与画廊token构成。形如："gid/token"
 |authors|艺术家名，多名艺术家以","隔开
 |title|标题
-|isExpunged|画廊是否被Exhentai删除
+|isExpunged|~~画廊是否被Exhentai删除~~ 现在isExpunged字段不再为Exhentai是否将画廊删除的字段，Exhentai标记画廊为删除仅仅是将画廊不公开，通过token依然能访问页面。现在该字段默认设置为0，并在通过网页直接下载不成功时置为1
 |isExisting|记录画廊在漫画库情况<br>```exist```画廊存在<br>```undownloaded```画廊未开始下载<br>```downloading:n```画廊正在通过磁链下载，n为下载磁链的索引，以0为初始<br>```torrentFailed```所有磁链在规定时间内都没有完成下载
 |groups|画廊所属的社团，多个社团以","隔开
 |category|画廊分类
