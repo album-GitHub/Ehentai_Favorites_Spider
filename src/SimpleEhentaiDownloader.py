@@ -96,7 +96,10 @@ def pageGraber(g_url, pageCount):
     page_no = 0
     while page_no < pageCount:
         page_html = getIMGHTML(page_url.format(page_no), header_img)
-        page_url_list.extend(page_html.xpath('//*[@id="gdt"]/div/div/a/@href'))
+        l=page_html.xpath('//*[@id="gdt"]/div/div/a/@href')
+        if l==[]:
+            l=page_html.xpath('//*[@id="gdt"]/div/a/@href')
+        page_url_list.extend(l)
         page_no += 1
     return page_url_list
 
