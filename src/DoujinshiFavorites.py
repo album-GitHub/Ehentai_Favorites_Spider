@@ -253,7 +253,7 @@ def toMetadata(gmetadata):
 
     m.authors = ",".join(m.authors)
     m.authors = (
-        m.groups if m.authors == "" and m.groups != "" else ""
+        m.groups if m.authors == "" and m.groups != "null" else m.authors
     )  # 如果作者名为空而社团名不为空，作者名使用社团名
     if isExist(m.authors, m.title):
         m.isExisting = "exist"
