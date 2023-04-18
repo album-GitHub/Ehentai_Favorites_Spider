@@ -1,3 +1,5 @@
+源仓库：[nhysteric/Ehentai_Favorites_Spider](https://github.com/nhysteric/Ehentai_Favorites_Spider)
+在原仓库基础上修复了收藏页面翻页功能，如果里站无权限则自动切换到标站获取、qb下载增加了按e站收藏夹保存到对应名字文件夹功能
 ### 简介
 
 抓取用户Ehentai收藏的画廊及其元数据，并通过qbittorrent下载这些画廊。
@@ -23,7 +25,7 @@
 
 ##### 工作流程
 
-脚本通过cookie登录Exhentai，扫描抓取收藏页面的画廊，将这些画廊的元数据录入sqlite数据库中。之后会调用qbittorrent下载含有磁链的画廊。如果画廊没有磁链或是所有磁链都无法成功完成下载，脚本会通过网页下载画廊图片，并将其打包为``.zip``格式
+脚本通过cookie登录Exhentai or E-hentai，扫描抓取收藏页面的画廊，将这些画廊的元数据录入sqlite数据库中。之后会调用qbittorrent下载含有磁链的画廊。如果画廊没有磁链或是所有磁链都无法成功完成下载，脚本会通过网页下载画廊图片，并将其打包为``.zip``格式
 下载好的画廊文件会被存放到相应的漫画库文件夹，你也可以将其他来源的压缩文件存放到文件夹中，脚本会记入它们。画廊文件通过下列格式存放到漫画库文件夹：
 "[艺术家名] 标题名.ext"，如果没有艺术家则只会有标题。它们会被存放到漫画库文件夹下与它们名字相同的子文件夹中，如下所示：
 
@@ -51,8 +53,8 @@ Manga
 
 打开`config.py`，根据需要设置下列字段
 
-* `Proxy` 代理
-* `ipb_member_id` `ipb_pass_hash` `igneous` Ex cookie值
+* `Proxy` 代理，建议不要在本地开启代理，qb容易连不上
+* `ipb_member_id` `ipb_pass_hash` `igneous` Ex cookie值，如果igneous为空的话自动切换到e-hentai下载
   
 * `local_mangaPath` 本地漫画库文件夹路径，如果实际存放在远端，需要映射到本地
 * `local_downloadPath` 本地下载文件夹路径，如果实际存放在远端，需要映射到本地
@@ -69,7 +71,8 @@ Manga
 * `maxDownloadCount`qbittorrent最大下载数，注意这不是qbittorrent同时下载数，而是发送给qbittorrent的最大任务数。请结合qbittorrent的同时下载数设置
 * `directDownloadLimit`一次脚本运行期间通过网页直接下载的画廊数，是为了防止因为下载时间过长出错而设置
 * `deleteAfterDownload`通过网页直接下载的画廊打包为``.zip``后，是否要删除下载的原始图片数据
-
+* `favorites_list_sw`根据收藏的分类保存到对应文件夹
+* `ByDirect_sw`没有种子的本子是否自动抓取图片保存成zip的开关
 ##### 使用
 
 在脚本文件夹下使用命令行键入
@@ -96,8 +99,10 @@ Manga
 |torrentCount|画廊的磁链数量
 |torrents|画廊的磁链，多个磁链以","隔开
 |addDate|画廊添加进数据库的时间
+|favorites_list|收藏夹名称
 
 ##### 已知的问题
 
 * 画廊录入数据库后，画廊的元数据的更新，对画廊取消收藏等操作，脚本不会做出反应
 * 没有完善的异常抛出机制与运行log记录
+* 未做收藏夹名称过滤，如果收藏夹名称中有文件夹名不允许出现的字符将会无法执行下载
