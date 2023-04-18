@@ -6,8 +6,9 @@ import copy
 import ssl
 
 from mechanize import Browser as B, HTTPSHandler
-
-import src.http_client as http_client
+import sys
+sys.path.append('./src')
+import http_client as http_client
 from http.cookiejar import CookieJar
 
 

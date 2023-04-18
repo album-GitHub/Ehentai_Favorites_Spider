@@ -1,8 +1,10 @@
-import src.DoujinshiFavorites as DoujinshiFavorites
+import sys
+sys.path.append('./src')
+import DoujinshiFavorites as DoujinshiFavorites
 from urllib.error import URLError
-from src.Browser import Browser
+from Browser import Browser
 import config, os, sys
-import src.DoujinshiDownlod as DoujinshiDownlod
+import DoujinshiDownlod as DoujinshiDownlod
 
 
 def welcome():
@@ -10,7 +12,6 @@ def welcome():
     print("0:创建并完整爬取收藏数据库，第一次或在上一次完整爬取时出错需要执行")
     print("1:刷新收藏画廊，并发送下载请求")
     return input()
-
 
 def test():
     if not os.path.isdir(config.local_mangaPath) or not os.path.isdir(
@@ -27,9 +28,12 @@ def test():
         config.qbt.auth_log_in()
         config.qbt.auth_log_out()
     except:
-        print("无法连接到qbit,请检查qbit设置")
+        print("无法连接到qbit,请检查qbit设置") 
         return False
-    url = "https://exhentai.org/"
+    if config.igneous == "":
+        url = "https://e-hentai.org/"
+    else:
+        url = "https://exhentai.org/"
     br = Browser()
     br.set_proxies(proxies=config.Proxy, proxy_bypass=lambda hostname: False)
     br.addheaders = [

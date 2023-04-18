@@ -1,20 +1,27 @@
+import sys
+sys.path.append('./src')
 import os, re, sqlite3, json, html
 from datetime import datetime
-from src.Browser import Browser
+from lxml import etree
 from config import (
     ExHentai_Cookies,
     Proxy,
     favoritesDB,
     translationDB,
     local_mangaPath,
+    igneous,
     validateTitle,
 )
-
-from src.DoujinshiDownlod import updateDownload
-
-query = "https://exhentai.org/favorites.php"
+from Browser import Browser
+from DoujinshiDownlod import updateDownload
+#如果igneous为空的话自动切换到e-hentai
+if igneous == "":
+    query = "https://e-hentai.org/favorites.php"
+else:
+    query = "https://exhentai.org/favorites.php"
 EHentai_API_url = "https://api.e-hentai.org/api.php"
-
+#本子id所属收藏夹
+favorites_dice = {}
 
 class md:
     def __init__(self) -> None:
@@ -41,12 +48,29 @@ def get_favorites(isTotal):
     gidList = []
     a = 0
     flag = True
+    unext = ''
     while flag:
-        url = query + "?page=" + str(a)
+        if a == 0 and unext == '':
+            url = query
+        elif unext != '':
+            url = unext
+        elif unext == '' and a != 0:
+            return
+        #print('url',url)
         try:
             _raw = br.open_novisit(url)
             raw = _raw.read()
+            #解码为html
+            html = etree.HTML(raw)
             raw = raw.decode("unicode_escape")
+            #获取当页本子的posted id
+            results = html.xpath('//div[@class="gl3e"]/div[2]/@id')
+            #获取下一页地址
+            unext = html.xpath('//a[@id="unext"]/@href')
+            for i in results:
+                #根据id匹配本子所属收藏夹，然后加入字典中
+                category = html.xpath('//div[@id="'+i+'"]/@title')
+                favorites_dice[str(i[7:])] = category[0]
         except Exception as e:
             print(e)
             return
@@ -198,6 +222,7 @@ def toMetadata(gmetadata):
     m.parody = []
     m.torrents = []
     m.torrentCount = gmetadata["torrentcount"]
+    m.favorites_list = favorites_dice[str(gmetadata["gid"])]
     for torrent in gmetadata["torrents"]:
         m.torrents.append(torrent["hash"])
     conn = sqlite3.connect(translationDB)
@@ -276,6 +301,7 @@ def insert(m):
     gid,
     authors,
     title,
+    favorites_list,
     isExpunged,
     isExisting,
     groups,
@@ -286,11 +312,12 @@ def insert(m):
     torrentCount,
     torrents,
     addDate) 
-    values(?,?,?,?,?,?,?,?,?,?,?,?,?)"""
+    values(?,?,?,?,?,?,?,?,?,?,?,?,?,?)"""
     value = [
         m.gid,
         m.authors,
         m.title,
+        m.favorites_list,
         m.isExpunged,
         m.isExisting,
         m.groups,
@@ -334,6 +361,7 @@ def start(isTotal):
             gid TEXT PRIMARY KEY  NOT NULL,
             authors TEXT,
             title TEXT NOT NULL,
+            favorites_list TEXT NOT NULL,
             isExpunged BOOLEAN NOT NULL,
             isExisting TEXT NOT NULL,
             groups TEXT,

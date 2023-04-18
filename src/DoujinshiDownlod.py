@@ -1,6 +1,6 @@
 from datetime import datetime
 import sqlite3, time, os
-import src.SimpleEhentaiDownloader as SimpleEhentaiDownloader
+import SimpleEhentaiDownloader as SimpleEhentaiDownloader
 from config import (
     favoritesDB,
     maxDownloadCount,
@@ -9,6 +9,8 @@ from config import (
     remote_downloadPath,
     timeLimit,
     remote_mangaPath,
+    favorites_list_sw,
+    ByDirect_sw,
     validateTitle,
 )
 
@@ -44,7 +46,7 @@ def refreshDownloading() -> int:
     con = sqlite3.connect(favoritesDB)
     cur = con.cursor()
     cur.execute(
-        "select gid,torrents,torrentCount,isExisting,authors,title from favorites where isExisting like 'downloading%'"
+        "select gid,torrents,torrentCount,isExisting,authors,title,favorites_list from favorites where isExisting like 'downloading%'"
     )
     rows = cur.fetchall()
     cur.close()
@@ -55,9 +57,19 @@ def refreshDownloading() -> int:
         torrents = row[1].split(",")
         torrentCount = row[2]
         isExisting = row[3]
+        Tail_path = row[6]
         n = int(isExisting.split(":")[1])
-        info = qbt.torrents_info(torrent_hashes=torrents[n])[0]
-        if info["progress"] == 1:
+        info = qbt.torrents_info(torrent_hashes=torrents[n])
+        if favorites_list_sw:
+            downloadPath = remote_downloadPath +'/' + Tail_path
+        else:
+            downloadPath = remote_downloadPath
+        print('downloadPath',downloadPath,'len(info)',len(info))
+        if len(info) == 0:
+            print('种子未下载')
+            updateDownload(gid, "undownloaded")
+            continue
+        if info[0]["progress"] == 1:
             if loadManga(torrents[n]):
                 updateDownload(gid, "exist")
                 print(info["name"] + "录入")
@@ -72,9 +84,9 @@ def refreshDownloading() -> int:
                 else:
                     qbt.torrents_add(
                         urls=mangetHead + torrents[n + 1],
-                        download_path=remote_downloadPath,
-                        category="本子",
-                        rename=info["name"],
+                        save_path=downloadPath,
+                        #category="本子",
+                        rename=info[0]["name"],
                     )
                     updateDownload(gid, "downloading:" + str(n + 1))
     return maxDownloadCount - count if maxDownloadCount - count > 0 else 0
@@ -96,14 +108,17 @@ def loadManga(torrent_hash):
     return True
 
 
-def downloadByTorrent(torrentHash, name):
+def downloadByTorrent(torrentHash, name, Tail_path):
     url = mangetHead + torrentHash
+    #根据收藏的分类保存到对应文件夹
+    if favorites_list_sw:
+        downloadPath = remote_downloadPath +'/' + Tail_path
     try:
         qbt.torrents_add(
             urls=url,
-            save_path=remote_downloadPath,
-            download_path=remote_downloadPath,
-            category="本子",
+            save_path=downloadPath,
+            #download_path=downloadPath,
+            #category="本子",
             rename=name,
         )
     except Exception as e:
@@ -112,9 +127,9 @@ def downloadByTorrent(torrentHash, name):
     return True
 
 
-def downloadByDirect(gid, downloadName):
+def downloadByDirect(gid, downloadName, Tail_path):
     try:
-        zipPath = SimpleEhentaiDownloader.downloadByPage(gid, downloadName)
+        zipPath = SimpleEhentaiDownloader.downloadByPage(gid, downloadName, Tail_path)
         SimpleEhentaiDownloader.loadManga(zipPath)
     except IndexError:
         print(downloadName + "已被Exhentai删除")
@@ -127,12 +142,12 @@ def start():
     cur = con.cursor()
     count = refreshDownloading()
     cur.execute(
-        "select gid,torrents,torrentCount,authors,title,isExisting from favorites where isExisting = 'undownloaded' and torrentCount>0 limit ?",
+        "select gid,torrents,torrentCount,authors,title,isExisting,favorites_list from favorites where isExisting = 'undownloaded' and torrentCount>0 limit ?",
         [str(count)],
     )
     rows = cur.fetchall()
     cur.execute(
-        "select gid,torrents,torrentCount,authors,title,isExisting from favorites where ( isExisting!='exist' and isExpunged==0) and (torrentCount<=0 or isExisting =='torrentFailed') limit ?",
+        "select gid,torrents,torrentCount,authors,title,isExisting,favorites_list from favorites where ( isExisting!='exist' and isExpunged==0) and (torrentCount<=0 or isExisting =='torrentFailed') limit ?",
         [str(directDownloadLimit)],
     )
     rows.extend(cur.fetchall())
@@ -144,12 +159,15 @@ def start():
         torrentCount = row[2]
         name = getFileName(authors=row[3], title=row[4])
         state = row[5]
+        Tail_path = row[6]
         if torrentCount > 0 and state == "undownloaded":
-            if downloadByTorrent(torrents[0], name):
+            if downloadByTorrent(torrents[0], name, Tail_path):
                 updateDownload(gid, "downloading:0")
         else:
-            if downloadByDirect(gid, name):
-                updateDownload(gid, "exist")
-            else:
-                updateDownload(gid, "failed")
-                updateExpunged(gid, True)
+            #如果开启无磁链直接下载则抓取图片链接直接下载打包zip
+            if ByDirect_sw:
+                if downloadByDirect(gid, name, Tail_path):
+                    updateDownload(gid, "exist")
+                else:
+                    updateDownload(gid, "failed")
+                    updateExpunged(gid, True)
