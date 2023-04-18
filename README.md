@@ -20,6 +20,7 @@
   * mechanize 0.4.8
   * qbittorrent_api 2022.8.35
   * requests 2.28.2
+* 可以使用`pip install -r requirements.txt`命令安装依赖
 * **qbittorrent**，并确保打开远程访问，qb的默认Torrent管理模式不能设置为自动，否则下载路径将失效
 * 最好也安装**sqlite**，以便在爬取出错时手动修改
 
