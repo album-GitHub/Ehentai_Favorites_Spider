@@ -15,12 +15,12 @@
 
 ##### 依赖的软件与库
 
-* **python3**，以及下列依赖库
-  * lxml 4.9.0
+* **目前使用的是python 3.10.8，更低或更高的环境暂未测试**，以及下列依赖库
+  * lxml 4.9.2
   * mechanize 0.4.8
-  * qbittorrent_api 2022.5.32
-  * requests 2.27.1
-* **qbittorrent**，并确保打开远程访问
+  * qbittorrent_api 2022.8.35
+  * requests 2.28.2
+* **qbittorrent**，并确保打开远程访问，qb的默认Torrent管理模式不能设置为自动，否则下载路径将失效
 * 最好也安装**sqlite**，以便在爬取出错时手动修改
 
 ##### 工作流程
@@ -74,8 +74,6 @@ Manga
 * `favorites_list_sw`根据收藏的分类保存到对应文件夹
 * `ByDirect_sw`没有种子的本子是否自动抓取图片保存成zip的开关
 ##### 使用
-
-先安装所需的python包`pip install -r requirements.txt`
 
 在脚本文件夹下使用命令行键入
 ```> python __init__.py```
