@@ -1,11 +1,14 @@
-import os, time, requests, zipfile, shutil
+import os, time, requests, zipfile, shutil, sys
 from lxml import etree
+sys.path.append("..")
 from config import (
     Proxy,
     local_downloadPath,
     Eh_Cookie,
     local_mangaPath,
     deleteAfterDownload,
+    igneous,
+    favorites_list_sw,
     validateTitle,
 )
 
@@ -185,9 +188,12 @@ def get_info(url):
     return info
 
 
-def downloadByPage(gid, title):
+def downloadByPage(gid, title, Tail_path):
     print(title, "开始下载")
-    g_url = "https://exhentai.org/g/" + gid
+    if igneous == "":
+        g_url = "https://e-hentai.org/g/" + gid
+    else:
+        g_url = "https://exhentai.org/g/" + gid
     html = getHTML(g_url)
     pageCount = (
         int(
@@ -203,9 +209,13 @@ def downloadByPage(gid, title):
     global header_img
     header_img["referer"] = g_url
     try:
+        if favorites_list_sw:
+            downloadPath = local_downloadPath + Tail_path
+        else:
+            downloadPath = local_downloadPath
         page_url_list = pageGraber(g_url, pageCount)
         zipPath = imgUrlGraberAndDownload(
-            page_url_list=page_url_list, title=title, path=local_downloadPath
+            page_url_list=page_url_list, title=title, path=downloadPath
         )
     except:
         raise Exception("下载失败")
@@ -221,3 +231,25 @@ def loadManga(zipPath):
         )
     except:
         raise Exception("io错误")
+
+
+def Original_download(url,path_name):
+    '''
+    url:文件下载链接
+    path_name：完整文件名带路径
+    下载存档文件模块
+    '''
+    count = 0
+    resp = None
+    while count < 5:
+        try:
+            resp = requests.get(url,params=None,headers=header,proxies=Proxy, cookies=Eh_Cookie, allow_redirects=False)
+            with open(os.path.join(path_name), "wb+") as f:
+                f.write(resp.content)
+            return True
+            break
+        except:
+            count += 1
+            if count > 5:
+                return False
+            continue

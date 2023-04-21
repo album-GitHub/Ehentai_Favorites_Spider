@@ -40,8 +40,20 @@ deleteAfterDownload = True
 #根据收藏的分类保存到对应文件夹
 favorites_list_sw = True
 
-#没有种子的本子是否自动抓取图片保存成zip
+#是否开启磁链下载模式
+torrent_Download_sw = False
+
+#没有种子的本子是否自动抓取图片保存成zip，跟下面的直接下载模式不要同时开启
 ByDirect_sw = False
+
+#是否开启直接下载模式（消耗GP或下载额度）
+file_Download_sw = True
+
+#种子智能筛选开关，如果开启的话自动判断种子是否是压缩包、压缩包名称是否跟标题或日语标题相同，优先下载日语标题的种子，
+#优先下载体积更大的种子
+checktorrent_sw = True
+
+
 
 ######以下不需要改动#######
 if igneous == "":
@@ -84,7 +96,6 @@ else:
             "path": "/",
         },
     ]
-
 qbt = qbittorrentapi.Client(
     host=qbt_host, port=qbt_port, username=qbt_username, password=qbt_password
 )

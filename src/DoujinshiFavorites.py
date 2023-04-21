@@ -1,5 +1,5 @@
 import sys
-sys.path.append('./src')
+sys.path.append('..')
 import os, re, sqlite3, json, html
 from datetime import datetime
 from lxml import etree
@@ -10,10 +10,12 @@ from config import (
     translationDB,
     local_mangaPath,
     igneous,
+    checktorrent_sw,
     validateTitle,
 )
 from Browser import Browser
 from DoujinshiDownlod import updateDownload
+from difflib import SequenceMatcher
 #如果igneous为空的话自动切换到e-hentai
 if igneous == "":
     query = "https://e-hentai.org/favorites.php"
@@ -45,35 +47,49 @@ def get_favorites(isTotal):
             domain=cookie["domain"],
             path=cookie["path"],
         )
-    gidList = []
+    
     a = 0
+    #循环控制
     flag = True
+    #已无下一页的信号
+    Next_page = True
+    xpathdice = {'Minimal':'gl2m','Minimal+':'gl2m','Compact':'gl2c','Extended':'gl2e','Thumbnail':'gl5t'}
     unext = ''
     while flag:
+        gidList = []
+        #收藏第一页
         if a == 0 and unext == '':
             url = query
-        elif unext != '':
-            url = unext
-        elif unext == '' and a != 0:
-            return
-        #print('url',url)
-        try:
-            _raw = br.open_novisit(url)
-            raw = _raw.read()
-            #解码为html
-            html = etree.HTML(raw)
-            raw = raw.decode("unicode_escape")
-            #获取当页本子的posted id
-            results = html.xpath('//div[@class="gl3e"]/div[2]/@id')
-            #获取下一页地址
-            unext = html.xpath('//a[@id="unext"]/@href')
-            for i in results:
-                #根据id匹配本子所属收藏夹，然后加入字典中
-                category = html.xpath('//div[@id="'+i+'"]/@title')
-                favorites_dice[str(i[7:])] = category[0]
-        except Exception as e:
-            print(e)
-            return
+        #下一页链接存在时
+        elif len(unext) != 0:
+            url = unext[0]
+        elif len(unext) == 0 and a != 0:
+            Next_page = False
+        _raw = br.open_novisit(url)
+        raw = _raw.read()
+        #解码为html
+        html = etree.HTML(raw)
+        raw = raw.decode("unicode_escape")
+        #先获取页面的显示模式，不同显示模式本子id的地址不同
+        selected = html.xpath('//option[@selected="selected" and (@value="m" or @value="p" or @value="l" or @value="e" or @value="t")]/text()')
+        if selected[0] == ['Minimal' or 'Minimal+' or 'Compact']:
+            xpa = '//*[@class="'+str(xpathdice[(selected[0])])+'"]/div[3]/div/@id'
+            results = html.xpath(xpa)
+        elif selected[0] == 'Extended':
+            xpa = '//*[@class="'+str(xpathdice[(selected[0])])+'"]/div[2]/@id'
+            results = html.xpath(xpa)
+        elif selected[0] == 'Thumbnail':
+            results = html.xpath('//*[@class="'+str(xpathdice[(selected[0])])+'"]/div/div[2]/@id')
+        if len(results) == 0:
+                break 
+        for i in results:
+            #根据id匹配本子所属收藏夹，然后加入字典中
+            category = html.xpath('//div[@id="'+i+'"]/@title')
+            favorites_dice[str(i[7:])] = category[0]
+                #获取下一页地址
+        #获取下一页链接，上一次已获取不到下一页的话这次直接跳过
+        if Next_page != False:
+            unext = html.xpath('//*[@id="unext"]/@href')
         gidList = get_gallery_info(raw)
         if gidList == None:
             break
@@ -81,9 +97,12 @@ def get_favorites(isTotal):
             if not get_all_details(
                 gidlist=gidList[s * 10 : (s + 1) * 10], timeout=1000, isTotal=isTotal
             ):
-                flag = False
                 break
         a = a + 1
+        #不存在下一页则退出循环
+        if Next_page == False:
+            flag = False
+            break 
 
 
 def get_gallery_info(raw):
@@ -143,6 +162,123 @@ def get_all_details(gidlist, timeout, isTotal):
         elif not isTotal:
             return False
     return True
+
+def checktorrent(gmetadata):
+    '''
+    检查种子后缀是否为压缩包，如果是文件夹则跳过
+    检查种子文件名与本子标题、原标题是否匹配，匹配度过低则跳过
+    '''
+    # 设置最大重试次数
+    num_tries = 3 
+    #字典，key=hash，vlan=[文件名,文件大小]
+    filedict = {}
+    # key=标题，vlan=[哈希，匹配程度]
+    outdict = {}
+    # key=日文标题，vlan=[哈希,匹配程度]
+    outdict_jp = {}
+    while num_tries > 0:
+        try:
+            #循环输出所有种子字典
+            for i in gmetadata["torrents"]:
+                #[文件名,文件大小]
+                list = []
+                name = i['name']
+                hash = i['hash']
+                size = i['fsize']
+                # 判断常见本子压缩格式后缀正则
+                compress_regex = r'\.(zip|rar|cbz|cbr|cb7|7z)$'
+                #如果发现文件不是压缩文件则跳过
+                if re.search(compress_regex, name):
+                    print('文件是漫画压缩格式',str((name)[-3:]))
+                    pass
+                else:
+                    print('文件不是漫画压缩格式',str((name)[-3:]))
+                    continue 
+                list.append(name)
+                list.append(int((size)[:-3]))
+                filedict[hash] = list
+        except Exception as e:
+            print(e)
+            num_tries -= 1 # 重试次数-1
+        if len(filedict) == 0:
+            return 
+        #依次输出vlan(哈希)
+        for vlan in filedict:
+            #filedict结构:{'哈希':[文件名,大小]}
+
+            #对标题进行匹配
+            Matching = SequenceMatcher(None, (filedict[vlan])[0], gmetadata["title"]).ratio()
+            #字典结构：{'哈希':[匹配率]}
+            outdict[vlan] = Matching
+            if "title_jpn" in gmetadata:
+                #对日文标题进行匹配
+                Matching_jp = SequenceMatcher(None, (filedict[vlan])[0], gmetadata["title_jpn"]).ratio()
+                outdict_jp[vlan] = Matching_jp
+        #如果种子只有一个
+        if len(filedict) == 1:
+            #如果存在日语标题
+            if "title_jpn" in gmetadata:
+                #如果日语标题匹配成功则直接返回该种子哈希
+                if outdict_jp[vlan] > 0.5:
+                    return vlan
+                #如果标题匹配成功则返回该种子哈希
+                elif outdict[vlan] > 0.5:
+                    return vlan
+                else:
+                    #都不匹配则返回空
+                    return
+            #如果不存在日语标题
+            else:
+                #如果匹配标题则返回种子哈希
+                if outdict[vlan] > 0.5:
+                    return vlan
+                else:
+                    #都不匹配则返回空
+                    return
+        #如果种子链接不止一个
+        else:
+            #符合条件的种子列表
+            Conform_jp = {}
+            Conform = {}
+            #循环输出所有哈希值
+            for h in filedict:
+                #如果存在日文标题
+                if "title_jpn" in gmetadata:
+                    #如果匹配日文标题则添加哈希到列表中(日文标题列表)
+                    if outdict_jp[h] > 0.5:
+                        Conform_jp[h] = filedict[h][1]
+                    #如果匹配标题则添加哈希到列表中(标题列表)
+                    elif outdict[h] > 0.5:
+                        Conform[h] = filedict[h][1]
+                    else:
+                        #都不匹配则跳出本次循环
+                        continue
+                
+                #如果不存在日文标题
+                else:
+                    #如果匹配标题则添加哈希到列表中(标题列表)
+                    if outdict[h] > 0.5:
+                        Conform[h] = filedict[h][1]
+                    else:
+                        #不匹配则跳出本次循环
+                        return
+            #如果日文标题列表不为空
+            if len(Conform_jp) != 0:
+                #如果日文列表数量为1则直接返回该哈希
+                if len(Conform_jp) == 1:
+                    return next(iter(Conform_jp.keys()))
+                else:
+                    #获取体积最大的哈希值
+                    return max(Conform_jp, key=lambda k: Conform_jp[k])
+            if len(Conform) != 0:
+                #如果日文列表数量为1则直接返回该哈希
+                if len(Conform) == 1:
+                    #直接返回第一个的哈希
+                    return next(iter(Conform.keys()))
+                else:
+                    #获取体积最大的哈希值
+                    return max(Conform, key=lambda k: Conform[k])
+
 
 
 def optional(pattern: str):
@@ -212,6 +348,7 @@ def findName(conn, comment, raw):
 
 
 def toMetadata(gmetadata):
+    
     m = md()
     m.gid = str(gmetadata["gid"]) + "/" + str(gmetadata["token"])
     m.title = extractFieldFromTitle(gmetadata["title_jpn"])
@@ -221,10 +358,23 @@ def toMetadata(gmetadata):
     m.characters = []
     m.parody = []
     m.torrents = []
-    m.torrentCount = gmetadata["torrentcount"]
+    
     m.favorites_list = favorites_dice[str(gmetadata["gid"])]
-    for torrent in gmetadata["torrents"]:
-        m.torrents.append(torrent["hash"])
+    #开启智能种子筛选
+    #print('gmetadata["torrentcount"]',gmetadata["torrentcount"],' gmetadata["torrents"]',gmetadata["torrents"])
+    if checktorrent_sw:
+        
+        torrent = checktorrent(gmetadata)
+        if torrent == None:
+            m.torrents.append('')
+            m.torrentCount = 0
+        else:
+            m.torrents.append(torrent)
+            m.torrentCount = 1
+    else:
+        m.torrentCount = gmetadata["torrentcount"]
+        for torrent in gmetadata["torrents"]:
+            m.torrents.append(torrent["hash"])
     conn = sqlite3.connect(translationDB)
     c = conn.cursor()
     tranTag = []
@@ -280,6 +430,7 @@ def toMetadata(gmetadata):
     m.authors = (
         m.groups if m.authors == "" and m.groups != "null" else m.authors
     )  # 如果作者名为空而社团名不为空，作者名使用社团名
+
     if isExist(m.authors, m.title):
         m.isExisting = "exist"
     else:
@@ -376,3 +527,4 @@ def start(isTotal):
     con.close()
     get_favorites(isTotal)
     upgradaExist()
+

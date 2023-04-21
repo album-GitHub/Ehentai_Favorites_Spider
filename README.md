@@ -1,8 +1,8 @@
-源仓库：[nhysteric/Ehentai_Favorites_Spider](https://github.com/nhysteric/Ehentai_Favorites_Spider)
-在原仓库基础上修复了收藏页面翻页功能，如果里站无权限则自动切换到标站获取、qb下载增加了按e站收藏夹保存到对应名字文件夹功能
+### 源仓库：[nhysteric/Ehentai_Favorites_Spider](https://github.com/nhysteric/Ehentai_Favorites_Spider)
+在原仓库基础上修复了收藏页面翻页功能，如果里站无权限则自动切换到表站获取、qb下载增加了按e站收藏夹保存到对应名字文件夹功能，并添加了直接下载存档的模式
 ### 简介
 
-抓取用户Ehentai收藏的画廊及其元数据，并通过qbittorrent下载这些画廊。
+抓取用户Ehentai收藏的画廊及其元数据，并通过qbittorrent下载这些画廊，同时也支持直接抓取图片打包成zip或是直接下载存档
 
 更新时，请先保存```config.py```与数据库文件，clone仓库后再进行替换
 
@@ -26,27 +26,9 @@
 
 ##### 工作流程
 
-脚本通过cookie登录Exhentai or E-hentai，扫描抓取收藏页面的画廊，将这些画廊的元数据录入sqlite数据库中。之后会调用qbittorrent下载含有磁链的画廊。如果画廊没有磁链或是所有磁链都无法成功完成下载，脚本会通过网页下载画廊图片，并将其打包为``.zip``格式
-下载好的画廊文件会被存放到相应的漫画库文件夹，你也可以将其他来源的压缩文件存放到文件夹中，脚本会记入它们。画廊文件通过下列格式存放到漫画库文件夹：
-"[艺术家名] 标题名.ext"，如果没有艺术家则只会有标题。它们会被存放到漫画库文件夹下与它们名字相同的子文件夹中，如下所示：
-
-Manga
-
-├──[artist1] title1
-
-│&ensp;&ensp;&ensp;&ensp;&ensp;└── [artist1] title1.zip
-
-├──[artist2] title2
-
-│&ensp;&ensp;&ensp;&ensp;&ensp;└── [artist2] title2.rar
-
-├──title3
-
-│&ensp;&ensp;&ensp;&ensp;&ensp;└── title3.7z
+脚本通过cookie登录Exhentai or E-hentai，扫描抓取收藏页面的画廊，将这些画廊的元数据录入sqlite数据库中。之后根据配置文件的配置，调用qbittorrent下载含有磁链的画廊、通过网页下载画廊图片，并将其打包为``.zip``格式、直接下载存档
 
 
-请注意，"[艺术家名]"与"标题名"之间含有空格，这些名字以数据库中的表项为准，建议先建立数据库表，根据表项修改名称后再导入。
-另外，画廊标题中诸如"?"、"\\"的非法路径字符会在文件名中被删去，在数据库中则仍会保留
 
 ### 如何使用
 
@@ -74,6 +56,9 @@ Manga
 * `deleteAfterDownload`通过网页直接下载的画廊打包为``.zip``后，是否要删除下载的原始图片数据
 * `favorites_list_sw`根据收藏的分类保存到对应文件夹
 * `ByDirect_sw`没有种子的本子是否自动抓取图片保存成zip的开关
+* `torrent_Download_sw`是否开启磁链下载模式
+* `file_Download_sw`是否开启直接下载模式（消耗GP或下载额度）
+* `checktorrent_sw`种子智能筛选开关，如果开启的话自动判断种子是否是压缩包、压缩包名称是否跟标题或日语标题相同，优先下载日语标题的种子，优先下载体积更大的种子
 ##### 使用
 
 在脚本文件夹下使用命令行键入

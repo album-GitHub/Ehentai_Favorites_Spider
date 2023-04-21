@@ -11,6 +11,7 @@ def welcome():
     print("请输入前面的数字，以确定要执行的模式")
     print("0:创建并完整爬取收藏数据库，第一次或在上一次完整爬取时出错需要执行")
     print("1:刷新收藏画廊，并发送下载请求")
+    print("2:获取数据库中喂下载的本子，并发送下载请求")
     return input()
 
 def test():
@@ -74,8 +75,10 @@ def start():
         elif i == "1":
             DoujinshiFavorites.start(False)
             DoujinshiDownlod.start()
+        elif i == "2":
+            DoujinshiDownlod.Downloading()
         else:
-            print("错误，请输入0或1")
+            print("错误，请输入0或1或2")
     elif sys.argv[1] == "-i":
         DoujinshiFavorites.start(False)
         DoujinshiDownlod.start()
