@@ -72,7 +72,7 @@ def get_favorites(isTotal):
         raw = raw.decode("unicode_escape")
         #先获取页面的显示模式，不同显示模式本子id的地址不同
         selected = html.xpath('//option[@selected="selected" and (@value="m" or @value="p" or @value="l" or @value="e" or @value="t")]/text()')
-        if selected[0] == ['Minimal' or 'Minimal+' or 'Compact']:
+        if selected[0] in ['Minimal','Minimal+','Compact']:
             xpa = '//*[@class="'+str(xpathdice[(selected[0])])+'"]/div[3]/div/@id'
             results = html.xpath(xpa)
         elif selected[0] == 'Extended':
